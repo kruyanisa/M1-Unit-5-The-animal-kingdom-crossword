@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Animal Kingdom Crossword</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;800&family=Fredoka+One&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://kruyanisa.github.io/classroom-core/quiz-config.js"></script>
+
+    <style>
+        body { 
+            margin: 0; padding: 20px 10px; background: #e0f2fe; 
+            font-family: 'Sarabun', sans-serif; 
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .header-container {
+            width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title-box { text-align: left; }
+        .title { color: #0369a1; margin: 0 0 5px 0; font-size: 24px; font-weight: 800; font-family: 'Fredoka One', 'Sarabun', sans-serif; }
+        .subtitle { color: #0284c7; margin: 0; font-size: 16px; font-weight: 600; }
+
+        .btn-audio {
+            background: #bae6fd; color: #0369a1; border: 2px solid #7dd3fc; padding: 10px 15px; 
+            border-radius: 50px; cursor: pointer; font-family: 'Sarabun'; font-weight: bold; 
+            box-shadow: 0 4px 0 #7dd3fc; display: flex; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .btn-audio:active { transform: translateY(4px); box-shadow: none; }
+
+        .main-card {
+            max-width: 900px; width: 100%; background: #ffffff;
+            padding: 20px; border-radius: 30px; border: 4px solid #7dd3fc;
+            box-shadow: 0 10px 0 #7dd3fc, 0 15px 25px rgba(0,0,0,0.05); 
+            box-sizing: border-box; text-align: center; margin-bottom: 30px;
+        }
+
+        .profile-bar {
+            font-size: 14px; background: #f0fdf4; border: 2px solid #bbf7d0;
+            padding: 8px 15px; border-radius: 20px; color: #166534; font-weight: bold;
+            display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px;
+        }
+        .btn-switch { background: #fca5a5; color: white; border: none; padding: 4px 12px; border-radius: 12px; cursor: pointer; font-family: 'Sarabun'; font-weight: bold; }
+
+        /* Crossword Grid */
+        .crossword-wrapper {
+            width: 100%; overflow-x: auto; padding: 10px 0; margin-bottom: 20px;
+            display: flex; justify-content: center;
+        }
+        
+        .crossword-board {
+            display: grid;
+            grid-template-columns: repeat(20, 32px);
+            grid-template-rows: repeat(12, 32px);
+            gap: 2px;
+            background: #f1f5f9; padding: 10px; border-radius: 15px;
+        }
+
+        .cw-cell {
+            width: 32px; height: 32px; background: white; border: 2px solid #cbd5e1;
+            border-radius: 6px; text-align: center; font-size: 18px; font-weight: bold;
+            font-family: 'Fredoka One', sans-serif; color: #334155; text-transform: uppercase;
+            box-sizing: border-box; outline: none; transition: 0.2s;
+            display: flex; justify-content: center; align-items: center; position: relative;
+        }
+        .cw-cell:focus { border-color: #38bdf8; background: #e0f2fe; box-shadow: 0 0 8px rgba(56, 189, 248, 0.5); }
+        .cw-cell.correct { background: #bbf7d0; border-color: #22c55e; color: #166534; pointer-events: none; }
+        .cw-empty { background: transparent; border: none; }
+        
+        .cw-num {
+            position: absolute; top: 1px; left: 2px; font-size: 9px; 
+            font-family: 'Sarabun'; color: #0284c7; font-weight: bold; line-height: 1; pointer-events: none;
+        }
+
+        /* Clues Gallery */
+        .clues-container {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;
+            margin-top: 20px;
+        }
+        .clue-item {
+            position: relative; background: #f8fafc; border: 2px solid #e2e8f0;
+            border-radius: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: 0.2s;
+        }
+        .clue-item:hover { transform: translateY(-5px); border-color: #7dd3fc; }
+        .clue-item img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
+        .clue-num-badge {
+            position: absolute; top: 8px; left: 8px; background: #0ea5e9; color: white;
+            width: 28px; height: 28px; display: flex; justify-content: center; align-items: center;
+            border-radius: 50%; font-weight: 800; font-family: 'Fredoka One', sans-serif;
+            border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .clue-status {
+            position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(34, 197, 94, 0.9);
+            color: white; text-align: center; padding: 4px 0; font-size: 12px; font-weight: bold;
+            transform: translateY(100%); transition: 0.3s;
+        }
+        .clue-item.solved .clue-status { transform: translateY(0); }
+        .clue-item.solved .clue-num-badge { background: #22c55e; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; visibility: hidden; opacity: 0; transition: 0.3s; }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal-box { background: white; padding: 30px; border-radius: 25px; text-align: center; width: 85%; max-width: 320px; border: 4px solid #7dd3fc; }
+        .modal-box input { width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #bae6fd; border-radius: 12px; text-align: center; font-family: 'Sarabun'; font-weight: 600; box-sizing: border-box; }
+        .modal-box input:focus { outline: none; border-color: #0369a1; }
+        .btn-action { width: 100%; padding: 15px; background: #bae6fd; color: #0369a1; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; font-family: 'Sarabun'; box-shadow: 0 5px 0 #7dd3fc; transition: 0.1s; }
+        .btn-action:active { transform: translateY(5px); box-shadow: none; }
+        .score-num { font-size: 50px; font-weight: 900; color: #0369a1; margin: 10px 0; display: block; }
+
+        @media (max-width: 600px) {
+            .crossword-board { grid-template-columns: repeat(20, 26px); grid-template-rows: repeat(12, 26px); }
+            .cw-cell { width: 26px; height: 26px; font-size: 14px; }
+            .cw-num { font-size: 8px; }
+            .clues-container { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgMusic" loop>
+        <source src="audiolofi.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="header-container">
+        <div class="title-box">
+            <h1 class="title">🐾 Animal Kingdom</h1>
+            <p class="subtitle">Vocabulary Crossword</p>
+        </div>
+        <button id="bgmBtn" class="btn-audio" onclick="toggleAudio()">
+            <span>🔇</span> เปิดเสียง
+        </button>
+    </div>
+
+    <div class="main-card">
+        <div id="userProfile" class="profile-bar" style="display:none;">
+            <span>👤 <span id="p_name"></span> | 🏫 <span id="p_room"></span> | 🆔 <span id="p_id"></span></span>
+            <button class="btn-switch" onclick="switchAccount()">🔄 สลับ</button>
+        </div>
+
+        <div class="crossword-wrapper">
+            <div class="crossword-board" id="cwBoard"></div>
+        </div>
+
+        <h3 style="color: #475569; text-align: left; margin-bottom: 0;">💡 คำใบ้ (Clues)</h3>
+        <div class="clues-container" id="cluesGallery"></div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-box">
+            <h2 id="modalTitle" style="color:#0369a1; margin-top:0;">📝 ลงชื่อเข้าเรียน</h2>
+            <p id="modalSub" style="color: #6b7280; font-weight: 600; margin-top: 0; display:none;"></p>
+            <input type="text" id="in_name" placeholder="ชื่อ - นามสกุล">
+            <input type="text" id="in_room" placeholder="ชั้น/ห้อง (เช่น 1/1)">
+            <input type="text" id="in_id" placeholder="รหัสประจำตัว (5 หลัก)" maxlength="5">
+            <button class="btn-action" onclick="confirmUser()">🚀 ยืนยันข้อมูล</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="scoreModal">
+        <div class="modal-box">
+            <h2 style="color:#0369a1; margin-top:0;">🎉 เก่งมาก!</h2>
+            <p style="color: #6b7280; font-weight: 600;">ไขปริศนาครบ 10 คำแล้ว</p>
+            <span class="score-num">10 / 10</span>
+            <div id="saveStatus" style="font-weight:bold; font-size:14px; margin-bottom:15px; color:#15803d;"></div>
+            <button id="playAgainBtn" class="btn-action" onclick="restartGame()" style="display:none;">🔄 เล่นอีกครั้ง</button>
+        </div>
+    </div>
+
+<script>
+    const LESSON_NAME = "ม. 1 Unit 5 The animal kingdom crossword";
+    
+    // โครงสร้างคำศัพท์และตำแหน่งในตาราง
+    const words = [
+        { id: 1, text: "duck", row: 0, col: 10, dir: "H", img: "duck.jpg" },
+        { id: 2, text: "chicken", row: 0, col: 12, dir: "V", img: "chicken.jpg" },
+        { id: 3, text: "horse", row: 5, col: 16, dir: "V", img: "horse.jpg" },
+        { id: 4, text: "elephant", row: 5, col: 12, dir: "H", img: "elephant.jpg" },
+        { id: 5, text: "bear", row: 10, col: 1, dir: "H", img: "bear.jpg" },
+        { id: 6, text: "sheep", row: 1, col: 15, dir: "V", img: "sheep.jpg" },
+        { id: 7, text: "chimpanzee", row: 2, col: 2, dir: "V", img: "chimpanzee.jpg" },
+        { id: 8, text: "hamster", row: 5, col: 0, dir: "H", img: "hamster.jpg" },
+        { id: 9, text: "squirrel", row: 1, col: 6, dir: "V", img: "squirrel.jpg" },
+        { id: 10, text: "eagle", row: 8, col: 3, dir: "H", img: "eagle.jpg" }
+    ];
+
+    const MAX_ROW = 12; const MAX_COL = 20;
+    let gridMap = {};
+    let solvedWords = [];
+    let isSwitchingAccount = false;
+    let audioPlaying = false;
+
+    window.onload = () => { checkLoginStatus(); buildGrid(); buildClues(); };
+
+    function toggleAudio() {
+        const bgm = document.getElementById('bgMusic');
+        const btn = document.getElementById('bgmBtn');
+        if(audioPlaying) {
+            bgm.pause(); btn.innerHTML = "<span>🔇</span> เปิดเสียง";
+        } else {
+            bgm.play(); btn.innerHTML = "<span>🔊</span> ปิดเสียง";
+        }
+        audioPlaying = !audioPlaying;
+    }
+
+    function buildGrid() {
+        gridMap = {}; solvedWords = [];
+        // สร้างแผนที่ข้อมูลตาราง
+        words.forEach(w => {
+            let r = w.row, c = w.col;
+            for(let i=0; i<w.text.length; i++) {
+                let key = `${r}-${c}`;
+                if(!gridMap[key]) gridMap[key] = { ans: w.text[i], words: [], num: null };
+                gridMap[key].words.push(w.id);
+                if(i === 0) gridMap[key].num = w.id;
+                if(w.dir === "H") c++; else r++;
+            }
+        });
+
+        const board = document.getElementById('cwBoard');
+        board.innerHTML = '';
+        for(let r=0; r<MAX_ROW; r++) {
+            for(let c=0; c<MAX_COL; c++) {
+                let key = `${r}-${c}`;
+                if(gridMap[key]) {
+                    let cell = document.createElement('input');
+                    cell.type = 'text'; cell.maxLength = 1;
+                    cell.className = 'cw-cell'; cell.id = `cell-${r}-${c}`;
+                    cell.dataset.r = r; cell.dataset.c = c;
+                    cell.dataset.words = JSON.stringify(gridMap[key].words);
+                    
+                    cell.addEventListener('input', (e) => handleInput(e, r, c));
+                    cell.addEventListener('keydown', (e) => handleKey(e, r, c));
+
+                    let wrapper = document.createElement('div');
+                    wrapper.style.position = 'relative';
+                    wrapper.appendChild(cell);
+
+                    if(gridMap[key].num) {
+                        let numLabel = document.createElement('span');
+                        numLabel.className = 'cw-num';
+                        numLabel.innerText = gridMap[key].num;
+                        wrapper.appendChild(numLabel);
+                    }
+                    board.appendChild(wrapper);
+                } else {
+                    let empty = document.createElement('div');
+                    empty.className = 'cw-empty';
+                    board.appendChild(empty);
+                }
+            }
+        }
+    }
+
+    function buildClues() {
+        const gallery = document.getElementById('cluesGallery');
+        gallery.innerHTML = '';
+        words.forEach(w => {
+            gallery.innerHTML += `
+                <div class="clue-item" id="clue-${w.id}">
+                    <div class="clue-num-badge">${w.id}</div>
+                    <img src="${w.img}" alt="Animal ${w.id}" onerror="this.src='https://via.placeholder.com/500?text=Animal+${w.id}'">
+                    <div class="clue-status">✔ ถูกต้อง</div>
+                </div>
+            `;
+        });
+    }
+
+    function handleInput(e, r, c) {
+        let val = e.target.value.toLowerCase();
+        e.target.value = val; // Force lowercase visually (css makes it uppercase)
+        let key = `${r}-${c}`;
+        let cellData = gridMap[key];
+        
+        // ตรวจสอบคำที่เซลล์นี้สังกัด
+        cellData.words.forEach(wId => checkWordCompletion(wId));
+
+        // Auto focus ถัดไป
+        if(val !== "") {
+            let wId = cellData.words[0]; // ยึดแกนคำแรกเป็นหลักในการเลื่อน
+            let wordObj = words.find(w => w.id === wId);
+            let nextR = r, nextC = c;
+            if(wordObj.dir === 'H') nextC++; else nextR++;
+            let nextCell = document.getElementById(`cell-${nextR}-${nextC}`);
+            if(nextCell && !nextCell.classList.contains('correct')) nextCell.focus();
+        }
+    }
+
+    function handleKey(e, r, c) {
+        let targetId = null;
+        if(e.key === 'ArrowRight') targetId = `cell-${r}-${c+1}`;
+        if(e.key === 'ArrowLeft') targetId = `cell-${r}-${c-1}`;
+        if(e.key === 'ArrowDown') targetId = `cell-${r+1}-${c}`;
+        if(e.key === 'ArrowUp') targetId = `cell-${r-1}-${c}`;
+        if(e.key === 'Backspace' && e.target.value === '') {
+            // ถ้ากดลบช่องว่าง ให้ถอยกลับ
+            let cellData = gridMap[`${r}-${c}`];
+            let wId = cellData.words[0];
+            let wordObj = words.find(w => w.id === wId);
+            if(wordObj.dir === 'H') targetId = `cell-${r}-${c-1}`;
+            else targetId = `cell-${r-1}-${c}`;
+        }
+        
+        if(targetId) {
+            let el = document.getElementById(targetId);
+            if(el) { el.focus(); e.preventDefault(); }
+        }
+    }
+
+    function checkWordCompletion(wId) {
+        if(solvedWords.includes(wId)) return;
+        let wordObj = words.find(w => w.id === wId);
+        let r = wordObj.row, c = wordObj.col;
+        let isComplete = true;
+        let isCorrect = true;
+        let cellsToCheck = [];
+
+        for(let i=0; i<wordObj.text.length; i++) {
+            let cell = document.getElementById(`cell-${r}-${c}`);
+            let val = cell.value.toLowerCase();
+            cellsToCheck.push(cell);
+            if(val === "") isComplete = false;
+            if(val !== wordObj.text[i]) isCorrect = false;
+            if(wordObj.dir === "H") c++; else r++;
+        }
+
+        if(isComplete && isCorrect) {
+            solvedWords.push(wId);
+            cellsToCheck.forEach(cell => cell.classList.add('correct'));
+            document.getElementById(`clue-${wId}`).classList.add('solved');
+            checkWin();
+        } else if (isComplete && !isCorrect) {
+            // สั่นเตือนเบาๆ ถ้าพิมพ์ครบแต่ผิด
+            cellsToCheck.forEach(cell => {
+                if(!cell.classList.contains('correct')) {
+                    cell.style.animation = 'none';
+                    setTimeout(() => cell.style.animation = 'shake 0.3s', 10);
+                }
+            });
+        }
+    }
+
+    function checkWin() {
+        if(solvedWords.length === words.length) {
+            setTimeout(() => {
+                if(!localStorage.getItem('studentId')) {
+                    document.getElementById('modalTitle').innerText = "👋 ยอดเยี่ยมมาก!";
+                    document.getElementById('modalSub').innerText = "กรอกข้อมูลเพื่อบันทึกคะแนนลงระบบ";
+                    document.getElementById('modalSub').style.display = 'block';
+                    document.getElementById('loginModal').classList.add('active');
+                } else { submitScore(); }
+            }, 800);
+        }
+    }
+
+    // --- ระบบ Login & ส่งคะแนน ---
+    function checkLoginStatus() {
+        if(localStorage.getItem('studentId')) {
+            document.getElementById('userProfile').style.display = 'flex';
+            document.getElementById('p_name').innerText = localStorage.getItem('studentName');
+            document.getElementById('p_room').innerText = localStorage.getItem('studentRoom');
+            document.getElementById('p_id').innerText = localStorage.getItem('studentId'); 
+        } else {
+            document.getElementById('userProfile').style.display = 'none';
+        }
+    }
+
+    function switchAccount() {
+        Swal.fire({
+            title: '⚠️ เปลี่ยนคนเล่น?', text: "ข้อมูลเดิมจะถูกสลับออกนะ", icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#0369a1', cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'ตกลง', cancelButtonText: 'ยกเลิก'
+        }).then((res) => {
+            if(res.isConfirmed) {
+                localStorage.clear(); isSwitchingAccount = true;
+                document.getElementById('in_name').value = ''; document.getElementById('in_room').value = ''; document.getElementById('in_id').value = '';
+                document.getElementById('modalTitle').innerText = "🔄 ลงชื่อบัญชีใหม่";
+                document.getElementById('modalSub').innerText = "กรอกข้อมูลเสร็จจะเริ่มเล่นเกมให้ทันที";
+                document.getElementById('modalSub').style.display = 'block';
+                checkLoginStatus(); document.getElementById('loginModal').classList.add('active');
+            }
+        });
+    }
+
+    document.getElementById('in_room').addEventListener('blur', function() {
+        let nums = this.value.match(/\d+/g);
+        if (nums && nums.length >= 2) this.value = `ม.${nums[0]}/${nums[1]}`;
+        else if (nums && nums.length === 1) this.value = `ม.${nums[0]}`;
+    });
+
+    function confirmUser() {
+        let n = document.getElementById('in_name').value.trim();
+        let r = document.getElementById('in_room').value.trim();
+        let id = document.getElementById('in_id').value.trim();
+        if(!n || !r || id.length !== 5) { Swal.fire('ข้อมูลไม่ครบ!', 'กรุณากรอกชื่อ ห้อง และรหัส 5 หลักให้ถูกต้อง', 'warning'); return; }
+        
+        localStorage.setItem('studentName', n); 
+        localStorage.setItem('studentRoom', r); 
+        localStorage.setItem('studentId', id);
+        
+        document.getElementById('loginModal').classList.remove('active'); 
+        checkLoginStatus();
+        if (isSwitchingAccount) { isSwitchingAccount = false; restartGame(); } 
+        else if (solvedWords.length === words.length) { submitScore(); }
+    }
+
+    async function submitScore() {
+        document.getElementById('scoreModal').classList.add('active');
+        const stat = document.getElementById('saveStatus');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        playAgainBtn.style.display = 'none';
+        checkLoginStatus();
+
+        if(typeof QUIZ_CONFIG === 'undefined' || !QUIZ_CONFIG.SCRIPT_URL) {
+            stat.innerText = "❌ ไฟล์เชื่อมต่อข้อมูลขัดข้อง (quiz-config.js)"; playAgainBtn.style.display = 'block'; return;
+        }
+
+        stat.innerText = "⏳ กำลังส่งคะแนน...";
+        const payload = {
+            name: localStorage.getItem('studentName'), room: localStorage.getItem('studentRoom'),
+            studentId: "'" + localStorage.getItem('studentId'), lesson: LESSON_NAME, score: 10, maxScore: 10
+        };
+
+        try {
+            await fetch(QUIZ_CONFIG.SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            stat.innerText = "✅ บันทึกคะแนนลงระบบเรียบร้อย!"; stat.style.color = "#15803d";
+        } catch(e) {
+            stat.innerText = "❌ ส่งคะแนนไม่สำเร็จ แต่สามารถเล่นใหม่ได้"; stat.style.color = "#ef4444";
+        } finally { playAgainBtn.style.display = 'block'; }
+    }
+
+    function restartGame() {
+        document.getElementById('scoreModal').classList.remove('active');
+        buildGrid(); buildClues();
+    }
+</script>
+
+<style>
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-3px); }
+        75% { transform: translateX(3px); }
+    }
+</style>
+</body>
+</html>
